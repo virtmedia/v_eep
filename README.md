@@ -40,19 +40,35 @@ struct myImportantData {
 } myImportantData;
 
 main(){
-    //set Watchdog to at least 60ms timeout first!
-    if( v_eep_read_verified(myImportantData, sizeof(myImportantData)) ){
-        printf("Data restored from Virtual EEPROM!");
-    }
-    else {
-        prinf("Both copies of the data corrupted! Initialising with default values.");
-    }
+	HAL_IWDG_Refresh(&hiwdg);
+	v_eep_read_result_t res = v_eep_read_verified(&myImportantData, sizeof(myImportantData), &hcrc);
+	HAL_IWDG_Refresh(&hiwdg);
+	if( res == V_EEP_RESULT_OK ){
 
-    ///...
+		sprintf(tbuf,"Data restored from Virtual EEPROM!\r\n");
+		HAL_UART_Transmit(&huart2, (uint8_t*)tbuf, strlen(tbuf), HAL_MAX_DELAY);
+	}else if( res == V_EEP_RESULT_1STOK ){
 
-    myImportantData.someParameter = 42;
+		sprintf(tbuf,"Data restored from 1st copy of Virtual EEPROM!\r\n");
+		HAL_UART_Transmit(&huart2, (uint8_t*)tbuf, strlen(tbuf), HAL_MAX_DELAY);
+	}else if( res == V_EEP_RESULT_2NDOK ){
 
-    v_eep_write(myImportantData, sizeof(myImportantData));
+		sprintf(tbuf,"Data restored from 2nd copy of Virtual EEPROM!\r\n");
+		HAL_UART_Transmit(&huart2, (uint8_t*)tbuf, strlen(tbuf), HAL_MAX_DELAY);
+	}else if( res == V_EEP_RESULT_FAIL ){
+
+		sprintf(tbuf,"Both copies of the data corrupted! Initializing with default values.\r\n");
+		HAL_UART_Transmit(&huart2, (uint8_t*)tbuf, strlen(tbuf), HAL_MAX_DELAY);
+	}
+	HAL_IWDG_Refresh(&hiwdg);
+	///...
+
+	myImportantData.someParameter += 1;
+
+	v_eep_write(&myImportantData, sizeof(myImportantData), &hcrc);
+	HAL_IWDG_Refresh(&hiwdg);
+	sprintf(tbuf,"someParameter = %d\r\n", myImportantData.someParameter);
+	HAL_UART_Transmit(&huart2, (uint8_t*)tbuf, strlen(tbuf), HAL_MAX_DELAY);
 }
 
 ```

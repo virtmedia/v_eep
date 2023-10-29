@@ -20,6 +20,13 @@
 
 #include "stm32f0xx_hal.h"
 
+typedef enum v_eep_read_result_e {
+	V_EEP_RESULT_FAIL = 0,
+	V_EEP_RESULT_1STOK,
+	V_EEP_RESULT_2NDOK,
+	V_EEP_RESULT_OK
+} v_eep_read_result_t;
+
 /**
  * Define here starting address of the last FLASH page, that will be used
  * for data storage. Please refer to the MCU documentation, or you can also
@@ -27,7 +34,7 @@
  * last page address.
  * \image html memory_map.jpg "Example memory map in ST-Link Utility"
  */
-#define V_EEP_PAGE	0x08007C00
+#define V_EEP_PAGE	0x0803F800
 
 /**
  * @brief Reads data from FLASH to RAM to given address
@@ -70,6 +77,6 @@ uint8_t v_eep_verify(uint32_t *base_addr, uint_fast16_t data_s,
  * @return	0 - data is corrupted, 1- successful readout (and repair, if necessary)
  * @attention	If there is a need to write the data, it can take about 60ms!
  */
-uint8_t v_eep_read_verified(void *data, uint16_t data_s,
+v_eep_read_result_t v_eep_read_verified(void *data, uint16_t data_s,
 		CRC_HandleTypeDef *hcrc);
 #endif /* INC_V_EEP_H_ */

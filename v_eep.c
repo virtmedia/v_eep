@@ -60,12 +60,13 @@ uint8_t v_eep_verify(uint32_t *base_addr, uint_fast16_t data_s,
 		CRC_HandleTypeDef *hcrc) {
 	uint32_t calculated_crc = 0, stored_crc = 0;
 	calculated_crc = HAL_CRC_Calculate(hcrc, base_addr, data_s);
-	stored_crc = *(uint32_t*) (base_addr + data_s);
+	base_addr += (data_s/4);
+	stored_crc = *(__IO uint32_t*) (base_addr);
 
 	return (calculated_crc == stored_crc);
 }
 
-uint8_t v_eep_read_verified(void *data, uint16_t data_s,
+v_eep_read_result_t v_eep_read_verified(void *data, uint16_t data_s,
 		CRC_HandleTypeDef *hcrc) {
 	uint_fast8_t is_1stOK = v_eep_verify((uint32_t*)V_EEP_PAGE, data_s, hcrc);
 	uint_fast8_t is_2ndOK = v_eep_verify((uint32_t*) (V_EEP_PAGE + data_s + 4),
@@ -74,7 +75,7 @@ uint8_t v_eep_read_verified(void *data, uint16_t data_s,
 
 	//both copies are corrupted - abort.
 	if (!is_1stOK && !is_2ndOK)
-		return 0;
+		return V_EEP_RESULT_FAIL;
 
 	//1st copy corrupted, restore from second one
 	if (!is_1stOK) {
@@ -82,14 +83,18 @@ uint8_t v_eep_read_verified(void *data, uint16_t data_s,
 				*((uint16_t*) (data + i)) = *(uint16_t*) (V_EEP_PAGE + data_s + 4 + i);
 		}
 		v_eep_write(data, data_s, hcrc);
+		v_eep_read(data, data_s);
+		return V_EEP_RESULT_2NDOK;
 	}
 
 	//2nd copy corrupted, restore from first one
 	if (!is_2ndOK) {
 		v_eep_read(data, data_s);
 		v_eep_write(data, data_s, hcrc);
+		return V_EEP_RESULT_1STOK;
 	}
 	//All copies are ok, just readout
-	return 1;
+	v_eep_read(data, data_s);
+	return V_EEP_RESULT_OK;
 }
 
